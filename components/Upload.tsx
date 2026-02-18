@@ -113,9 +113,12 @@ const Upload = ({ onComplete = () => undefined }: UploadProps) => {
 
         const selectedFile = selectedFiles[0];
         const allowedTypes = ["image/png", "image/jpeg"];
-        if (allowedTypes.includes(selectedFile.type)) {
-                    processFile(selectedFile);
+        if (!allowedTypes.includes(selectedFile.type)) {
+            console.warn('Unsupported file type:', selectedFile.type);
+            event.target.value = "";
+            return;
         }
+        processFile(selectedFile);
     };
 
     useEffect(() => {
