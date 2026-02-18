@@ -14,6 +14,7 @@ const Upload = ({ onComplete = () => undefined }: UploadProps) => {
     const [isDragging, setIsDragging] = useState(false);
     const [progress, setProgress] = useState(0);
     const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const completeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const { isSignedIn } = useOutletContext<AuthContext>();
 
@@ -24,11 +25,20 @@ const Upload = ({ onComplete = () => undefined }: UploadProps) => {
             clearInterval(progressIntervalRef.current);
             progressIntervalRef.current = null;
         }
+        if (completeTimeoutRef.current) {
+            clearTimeout(completeTimeoutRef.current);
+            completeTimeoutRef.current = null;
+        }
 
         setFile(selectedFile);
         setProgress(0);
 
         const reader = new FileReader();
+
+        reader.onerror = () => {
+            setFile(null);
+            setProgress(0);
+        }
 
         reader.onload = () => {
             const base64Data = typeof reader.result === "string" ? reader.result : "";
@@ -41,9 +51,14 @@ const Upload = ({ onComplete = () => undefined }: UploadProps) => {
                     if (next === 100 && progressIntervalRef.current) {
                         clearInterval(progressIntervalRef.current);
                         progressIntervalRef.current = null;
+                        if (completeTimeoutRef.current) {
+                            clearTimeout(completeTimeoutRef.current);
+                            completeTimeoutRef.current = null;
+                        }
 
-                        setTimeout(() => {
+                        completeTimeoutRef.current = setTimeout(() => {
                             onComplete(base64Data);
+                            completeTimeoutRef.current = null;
                         }, REDIRECT_DELAY_MS);
                     }
 
@@ -78,10 +93,11 @@ const Upload = ({ onComplete = () => undefined }: UploadProps) => {
         event.preventDefault();
         setIsDragging(false);
 
-        const droppedFiles = event.dataTransfer.files;
-        if (!droppedFiles?.length) return;
-
-        processFile(droppedFiles[0]);
+        const droppedFile = event.dataTransfer.files[0];
+        const allowedTypes = ["image/png", "image/jpeg"];
+        if(droppedFile && allowedTypes.includes(droppedFile.type)) {
+            processFile(droppedFile);
+        }
     };
 
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -97,6 +113,11 @@ const Upload = ({ onComplete = () => undefined }: UploadProps) => {
         return () => {
             if (progressIntervalRef.current) {
                 clearInterval(progressIntervalRef.current);
+                progressIntervalRef.current = null;
+            }
+            if (completeTimeoutRef.current) {
+                clearTimeout(completeTimeoutRef.current);
+                completeTimeoutRef.current = null;
             }
         };
     }, []);
