@@ -36,8 +36,10 @@ const Upload = ({ onComplete = () => undefined }: UploadProps) => {
         const reader = new FileReader();
 
         reader.onerror = () => {
+            console.error('Failed to read file:', reader.error);
             setFile(null);
             setProgress(0);
+            // Consider: setError('Failed to read file. Please try again.');
         }
 
         reader.onload = () => {
@@ -97,6 +99,9 @@ const Upload = ({ onComplete = () => undefined }: UploadProps) => {
         const allowedTypes = ["image/png", "image/jpeg"];
         if(droppedFile && allowedTypes.includes(droppedFile.type)) {
             processFile(droppedFile);
+        } else if (droppedFile) {
+            // Consider: show error toast or set error state
+            console.warn('Unsupported file type:', droppedFile.type);
         }
     };
 
@@ -106,7 +111,11 @@ const Upload = ({ onComplete = () => undefined }: UploadProps) => {
         const selectedFiles = event.target.files;
         if (!selectedFiles?.length) return;
 
-        processFile(selectedFiles[0]);
+        const selectedFile = selectedFiles[0];
+        const allowedTypes = ["image/png", "image/jpeg"];
+        if (allowedTypes.includes(selectedFile.type)) {
+                    processFile(selectedFile);
+        }
     };
 
     useEffect(() => {
